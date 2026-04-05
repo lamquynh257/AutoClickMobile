@@ -58,6 +58,14 @@ internal class SettingsRepositoryImpl @Inject constructor(
         .stateIn(coroutineScope, SharingStarted.Eagerly, false)
     override val isInputBlockWorkaroundEnabledFlow: Flow<Boolean> = _isInputBlockWorkaroundEnabledFlow
 
+    private val _telegramBotTokenFlow: StateFlow<String?> = dataSource.getTelegramBotToken()
+        .stateIn(coroutineScope, SharingStarted.Eagerly, null)
+    override val telegramBotTokenFlow: Flow<String?> = _telegramBotTokenFlow
+
+    private val _telegramChatIdFlow: StateFlow<String?> = dataSource.getTelegramChatId()
+        .stateIn(coroutineScope, SharingStarted.Eagerly, null)
+    override val telegramChatIdFlow: Flow<String?> = _telegramChatIdFlow
+
 
     override fun isFilterScenarioUiEnabled(): Boolean =
         _isFilterScenarioUiEnabled.value
@@ -106,6 +114,24 @@ internal class SettingsRepositoryImpl @Inject constructor(
     override fun toggleInputBlockWorkaround() {
         coroutineScope.launch {
             dataSource.toggleInputBlockWorkaround()
+        }
+    }
+
+    override fun getTelegramBotToken(): String? =
+        _telegramBotTokenFlow.value
+
+    override fun setTelegramBotToken(token: String?) {
+        coroutineScope.launch {
+            dataSource.setTelegramBotToken(token)
+        }
+    }
+
+    override fun getTelegramChatId(): String? =
+        _telegramChatIdFlow.value
+
+    override fun setTelegramChatId(chatId: String?) {
+        coroutineScope.launch {
+            dataSource.setTelegramChatId(chatId)
         }
     }
 }

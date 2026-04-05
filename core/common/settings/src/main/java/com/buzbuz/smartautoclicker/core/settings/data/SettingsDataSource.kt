@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.core.settings.data
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 
 import com.buzbuz.smartautoclicker.core.base.PreferencesDataStore
 import com.buzbuz.smartautoclicker.core.base.di.Dispatcher
@@ -53,6 +54,10 @@ internal class SettingsDataSource @Inject constructor(
             booleanPreferencesKey("forceEntireScreen")
         val KEY_INPUT_BLOCK_WORKAROUND: Preferences.Key<Boolean> =
             booleanPreferencesKey("inputBlockWorkaround")
+        val KEY_TELEGRAM_BOT_TOKEN: Preferences.Key<String> =
+            stringPreferencesKey("telegramBotToken")
+        val KEY_TELEGRAM_CHAT_ID: Preferences.Key<String> =
+            stringPreferencesKey("telegramChatId")
     }
 
     private val dataStore: PreferencesDataStore =
@@ -102,6 +107,26 @@ internal class SettingsDataSource @Inject constructor(
         if (!isImpactedByInputBlock()) return
         dataStore.edit { preferences ->
             preferences[KEY_INPUT_BLOCK_WORKAROUND] = !(preferences[KEY_INPUT_BLOCK_WORKAROUND] ?: false)
+        }
+    }
+
+    internal fun getTelegramBotToken(): Flow<String?> =
+        dataStore.data.map { preferences -> preferences[KEY_TELEGRAM_BOT_TOKEN] }
+
+    internal suspend fun setTelegramBotToken(token: String?) {
+        dataStore.edit { preferences ->
+            if (token.isNullOrBlank()) preferences.remove(KEY_TELEGRAM_BOT_TOKEN)
+            else preferences[KEY_TELEGRAM_BOT_TOKEN] = token
+        }
+    }
+
+    internal fun getTelegramChatId(): Flow<String?> =
+        dataStore.data.map { preferences -> preferences[KEY_TELEGRAM_CHAT_ID] }
+
+    internal suspend fun setTelegramChatId(chatId: String?) {
+        dataStore.edit { preferences ->
+            if (chatId.isNullOrBlank()) preferences.remove(KEY_TELEGRAM_CHAT_ID)
+            else preferences[KEY_TELEGRAM_CHAT_ID] = chatId
         }
     }
 }

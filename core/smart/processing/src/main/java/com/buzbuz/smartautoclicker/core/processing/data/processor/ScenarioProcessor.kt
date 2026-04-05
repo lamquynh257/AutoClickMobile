@@ -53,6 +53,7 @@ internal class ScenarioProcessor(
     unblockWorkaroundEnabled: Boolean = false,
     private val onStopRequested: () -> Unit,
     private val progressListener: SmartProcessingListener,
+    private val settingsRepository: com.buzbuz.smartautoclicker.core.settings.SettingsRepository,
 ) {
 
     /** Handle the processing state of the scenario. */
@@ -75,6 +76,7 @@ internal class ScenarioProcessor(
         processingState = processingState,
         randomize = randomize,
         unblockWorkaroundEnabled = unblockWorkaroundEnabled,
+        settingsRepository = settingsRepository,
     )
 
     fun onScenarioStart(context: Context) {

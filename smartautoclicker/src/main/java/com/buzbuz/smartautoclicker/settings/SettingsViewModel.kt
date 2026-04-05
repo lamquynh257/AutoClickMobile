@@ -28,8 +28,13 @@ import com.buzbuz.smartautoclicker.feature.revenue.IRevenueRepository
 import com.buzbuz.smartautoclicker.feature.revenue.UserBillingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.viewModelScope
 import javax.inject.Inject
 
 
@@ -54,6 +59,12 @@ class SettingsViewModel @Inject constructor(
 
     val isInputWorkaroundEnabled: Flow<Boolean> =
         settingsRepository.isInputBlockWorkaroundEnabledFlow
+
+    val telegramBotToken: Flow<String?> =
+        settingsRepository.telegramBotTokenFlow
+
+    val telegramChatId: Flow<String?> =
+        settingsRepository.telegramChatIdFlow
 
     val shouldShowEntireScreenCapture: Flow<Boolean> =
         flowOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -100,5 +111,55 @@ class SettingsViewModel @Inject constructor(
 
     fun showTroubleshootingDialog(activity: FragmentActivity) {
         qualityRepository.startTroubleshootingUiFlow(activity)
+    }
+
+    fun setTelegramBotToken(token: String?) {
+        settingsRepository.setTelegramBotToken(token)
+    }
+
+    fun setTelegramChatId(chatId: String?) {
+        settingsRepository.setTelegramChatId(chatId)
+    }
+
+    private val _testTelegramResult = MutableSharedFlow<Result<Unit>>()
+    val testTelegramResult = _testTelegramResult.asSharedFlow()
+
+    fun testTelegramConfig(botToken: String?, chatId: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (botToken.isNullOrBlank() || chatId.isNullOrBlank()) {
+                    _testTelegramResult.emit(Result.failure(Exception("Token or Chat ID is empty")))
+                    return@launch
+                }
+                val urlString = "https://api.telegram.org/bot$botToken/sendMessage"
+                val url = java.net.URL(urlString)
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+
+                val jsonPayload = org.json.JSONObject().apply {
+                    put("chat_id", chatId)
+                    put("text", "Test connection from Smart-AutoClicker")
+                }.toString()
+
+                connection.outputStream.use { os ->
+                    val input = jsonPayload.toByteArray(kotlin.text.Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                val responseCode = connection.responseCode
+                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    _testTelegramResult.emit(Result.success(Unit))
+                } else {
+                    val stream = if (responseCode < 400) connection.inputStream else connection.errorStream
+                    val errorString = stream?.bufferedReader()?.use { it.readText() } ?: "Unknown Error"
+                    _testTelegramResult.emit(Result.failure(Exception("HTTP $responseCode: $errorString")))
+                }
+                connection.disconnect()
+            } catch (e: Exception) {
+                _testTelegramResult.emit(Result.failure(e))
+            }
+        }
     }
 }

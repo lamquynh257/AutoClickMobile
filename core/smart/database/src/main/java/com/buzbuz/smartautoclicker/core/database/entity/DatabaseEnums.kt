@@ -53,8 +53,9 @@ enum class ActionType {
     SYSTEM,
     /** Set the text of a focused view on the screen. */
     TEXT,
+    /** Send a message via Telegram. */
+    TELEGRAM_MESSAGE,
 }
-
 
 /**
  * Type of click position for a [ActionType.CLICK].

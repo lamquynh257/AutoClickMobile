@@ -104,4 +104,11 @@ sealed class ActionTypeChoice(
         R.string.item_set_text_desc,
         getSetTextIconRes(),
     )
+
+    /** Telegram Message Action choice. */
+    data object TelegramMessage : ActionTypeChoice(
+        R.string.item_telegram_message_title,
+        R.string.item_telegram_message_desc,
+        getNotificationIconRes(),
+    )
 }

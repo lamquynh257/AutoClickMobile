@@ -217,6 +217,7 @@ class DetectorEngine @Inject constructor(
                 unblockWorkaroundEnabled = settingsRepository.isInputBlockWorkaroundEnabled(),
                 onStopRequested = { stopDetection() },
                 progressListener  = debuggingListener,
+                settingsRepository = settingsRepository,
             )
             scenarioProcessor?.onScenarioStart(context)
 

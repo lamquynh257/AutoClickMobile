@@ -368,6 +368,7 @@ internal open class CompatDeserializer : Deserializer {
             ActionType.NOTIFICATION -> deserializeActionNotification(jsonAction)
             ActionType.SYSTEM -> deserializeActionSystem(jsonAction)
             ActionType.TEXT -> deserializeActionSetText(jsonAction)
+            ActionType.TELEGRAM_MESSAGE -> deserializeActionTelegramMessage(jsonAction)
             null -> null
         }
 
@@ -583,6 +584,21 @@ internal open class CompatDeserializer : Deserializer {
             type = ActionType.TEXT,
             textValue = jsonSetText.getString("textValue") ?: "",
             textValidateInput = jsonSetText.getBoolean("textValidateInput") ?: false,
+        )
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionTelegramMessage(jsonTelegramMessage: JsonObject): ActionEntity? {
+        val id = jsonTelegramMessage.getLong("id", true) ?: return null
+        val eventId = jsonTelegramMessage.getLong("eventId", true) ?: return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonTelegramMessage.getString("name") ?: "",
+            priority = jsonTelegramMessage.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.TELEGRAM_MESSAGE,
+            telegramMessageText = jsonTelegramMessage.getString("telegramMessageText") ?: "",
         )
     }
 

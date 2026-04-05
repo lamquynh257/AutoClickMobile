@@ -98,6 +98,9 @@
     <string name="item_set_text_details_text">%1$s</string>
     <string name="item_set_text_details_text_empty">Clear text</string>
 
+    <string name="item_telegram_message_title">Telegram Message</string>
+    <string name="item_telegram_message_desc">Send a text message via Telegram Bot API</string>
+
     <!-- Dialog Copy =============================================================================================== -->
 
     <string name="search_view_hint_event_copy">Search by event name</string>
@@ -153,6 +156,7 @@
     <string name="dialog_title_trigger_event">Trigger</string>
     <string name="dialog_title_action_type">Action type</string>
     <string name="dialog_title_trigger_condition_type">Trigger type</string>
+    <string name="dialog_title_telegram_action">Telegram message</string>
 
     <string name="field_condition_selector_desc">%1$d conditions</string>
     <string name="message_empty_screen_condition_list_title">No screen conditions !</string>
@@ -395,6 +399,8 @@
         by clicking on it.\n\nPlease note that depending on the application, you might need to wait a little bit after
         clicking, or the text will be written too early.\n\nThis might also not be working applications that
         don\'t support standard text writing, so always test your action first!</string>
+
+    <string name="field_input_telegram_text_title">Text to send via Telegram</string>
 
 
     <!-- Dialogs warning/error ===================================================================================== -->

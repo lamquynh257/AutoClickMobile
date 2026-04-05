@@ -21,6 +21,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.TelegramMessage
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
 
@@ -35,6 +36,7 @@ internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = 
     ActionType.NOTIFICATION -> toDomainNotification(cleanIds)
     ActionType.SYSTEM -> toDomainSystem(cleanIds)
     ActionType.TEXT -> toDomainSetText(cleanIds)
+    ActionType.TELEGRAM_MESSAGE -> toDomainTelegramMessage(cleanIds)
 }
 
 private fun CompleteActionEntity.toDomainClick(cleanIds: Boolean = false) = Click(
@@ -132,6 +134,14 @@ private fun CompleteActionEntity.toDomainSetText(cleanIds: Boolean = false) = Se
     priority = action.priority,
     text = action.textValue ?: "",
     validateInput = action.textValidateInput ?: false,
+)
+
+private fun CompleteActionEntity.toDomainTelegramMessage(cleanIds: Boolean = false) = TelegramMessage(
+    id = Identifier(id = action.id, asTemporary = cleanIds),
+    eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
+    name = action.name,
+    priority = action.priority,
+    text = action.telegramMessageText ?: "",
 )
 
 private fun ClickPositionType.toDomain(): Click.PositionType =

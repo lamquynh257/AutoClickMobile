@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
+import com.buzbuz.smartautoclicker.core.domain.model.action.TelegramMessage
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 
 
@@ -45,6 +46,7 @@ internal fun Action.toEntity(): ActionEntity {
         is Notification -> toNotificationEntity()
         is SystemAction -> toSystemActionEntity()
         is SetText -> toSetTextEntity()
+        is TelegramMessage -> toTelegramMessageEntity()
     }
 }
 
@@ -162,4 +164,14 @@ private fun SetText.toSetTextEntity(): ActionEntity =
         type = ActionType.TEXT,
         textValue = text,
         textValidateInput = validateInput,
+    )
+
+private fun TelegramMessage.toTelegramMessageEntity(): ActionEntity =
+    ActionEntity(
+        id = id.databaseId,
+        eventId = eventId.databaseId,
+        priority = priority,
+        name = name!!,
+        type = ActionType.TELEGRAM_MESSAGE,
+        telegramMessageText = text,
     )

@@ -40,4 +40,12 @@ interface SettingsRepository {
     val isInputBlockWorkaroundEnabledFlow: Flow<Boolean>
     fun isInputBlockWorkaroundEnabled(): Boolean
     fun toggleInputBlockWorkaround()
+
+    val telegramBotTokenFlow: Flow<String?>
+    fun getTelegramBotToken(): String?
+    fun setTelegramBotToken(token: String?)
+
+    val telegramChatIdFlow: Flow<String?>
+    fun getTelegramChatId(): String?
+    fun setTelegramChatId(chatId: String?)
 }

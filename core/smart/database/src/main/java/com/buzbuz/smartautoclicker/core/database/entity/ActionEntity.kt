@@ -168,6 +168,9 @@ data class ActionEntity(
     // ActionType.TEXT
     @ColumnInfo(name = "text_value") val textValue: String? = null,
     @ColumnInfo(name = "text_validate_input") val textValidateInput: Boolean? = null,
+
+    // ActionType.TELEGRAM_MESSAGE
+    @ColumnInfo(name = "telegram_message_text") val telegramMessageText: String? = null,
 ) : EntityWithId
 
 /**

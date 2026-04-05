@@ -116,6 +116,40 @@
             android:layout_height="wrap_content"
             android:layout_marginVertical="@dimen/margin_vertical_default"/>
 
+        <com.google.android.material.divider.MaterialDivider
+            style="@style/AppTheme.Widget.Divider.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/telegram_settings_title"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:layout_marginBottom="@dimen/margin_vertical_default"
+            android:textColor="?attr/colorSecondary" />
+
+        <include layout="@layout/include_field_text_input"
+            android:id="@+id/field_telegram_bot_token"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="@dimen/margin_vertical_default" />
+
+        <include layout="@layout/include_field_text_input"
+            android:id="@+id/field_telegram_chat_id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="@dimen/margin_vertical_default" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_test_telegram"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="@string/telegram_button_test" />
+
     </LinearLayout>
+
 
 </androidx.core.widget.NestedScrollView>

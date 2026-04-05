@@ -141,6 +141,14 @@
     <string name="field_remove_ads">Remove ads</string>
     <string name="field_troubleshooting">Troubleshooting</string>
 
+    <string name="telegram_settings_title">Telegram Settings</string>
+    <string name="telegram_bot_token_title">Bot Token</string>
+    <string name="telegram_bot_token_hint">e.g. 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11</string>
+    <string name="telegram_chat_id_title">Chat ID</string>
+    <string name="telegram_chat_id_hint">e.g. 123456789</string>
+    <string name="telegram_button_test">Test Connection</string>
+    <string name="telegram_test_success">Message sent successfully!</string>
+    <string name="telegram_test_failure">Failed: %1$s</string>
 
     <!-- Legacy condition migration dialog  ======================================================================== -->
     <string name="dialog_condition_migration_title">Migration</string>

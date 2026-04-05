@@ -41,6 +41,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
+import com.buzbuz.smartautoclicker.core.domain.model.action.TelegramMessage
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
@@ -51,6 +52,7 @@ import com.buzbuz.smartautoclicker.core.processing.data.processor.state.Processi
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
@@ -66,6 +68,7 @@ internal class ActionExecutor(
     private val processingState: ProcessingState,
     randomize: Boolean,
     unblockWorkaroundEnabled: Boolean = false,
+    private val settingsRepository: com.buzbuz.smartautoclicker.core.settings.SettingsRepository,
 ) {
 
     init { androidExecutor.resetState() }
@@ -101,6 +104,7 @@ internal class ActionExecutor(
                 is Notification -> executeNotification(event, action)
                 is SystemAction -> executeSystemAction(action)
                 is SetText -> executeSetText(action)
+                is TelegramMessage -> executeTelegramMessage(action)
             }
         }
     }
@@ -302,6 +306,56 @@ internal class ActionExecutor(
                 text = action.text.replaceCounterReferences(counters),
                 validate = action.validateInput,
             )
+        }
+    }
+
+    private suspend fun executeTelegramMessage(action: TelegramMessage) {
+        val botToken = settingsRepository.telegramBotTokenFlow.firstOrNull()
+        val chatId = settingsRepository.telegramChatIdFlow.firstOrNull()
+
+        if (botToken.isNullOrBlank() || chatId.isNullOrBlank()) {
+            Log.w(TAG, "Telegram Token or Chat ID is missing. Cannot send message.")
+            return
+        }
+
+        val counters = buildMap {
+            action.text.findCounterReferences().forEach { counterName ->
+                processingState.getCounterValue(counterName)?.let { counterValue ->
+                    put(counterName, counterValue)
+                }
+            }
+        }
+        val textToSend = action.text.replaceCounterReferences(counters)
+
+        withContext(Dispatchers.IO) {
+            try {
+                val urlString = "https://api.telegram.org/bot$botToken/sendMessage"
+                val url = java.net.URL(urlString)
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+
+                val jsonPayload = org.json.JSONObject().apply {
+                    put("chat_id", chatId)
+                    put("text", textToSend)
+                }.toString()
+
+                connection.outputStream.use { os ->
+                    val input = jsonPayload.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                val responseCode = connection.responseCode
+                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    Log.i(TAG, "Telegram message sent successfully")
+                } else {
+                    Log.e(TAG, "Failed to send Telegram message. Response code: $responseCode")
+                }
+                connection.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception while sending Telegram message", e)
+            }
         }
     }
 }

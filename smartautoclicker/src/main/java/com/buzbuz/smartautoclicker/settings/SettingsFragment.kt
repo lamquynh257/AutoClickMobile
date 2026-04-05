@@ -33,6 +33,8 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnClickListener
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
 
 import com.buzbuz.smartautoclicker.databinding.FragmentSettingsBinding
+import androidx.core.widget.doOnTextChanged
+import android.widget.Toast
 
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -96,6 +98,24 @@ class SettingsFragment : Fragment() {
             setOnClickListener { viewModel.showTroubleshootingDialog(requireActivity()) }
         }
 
+        viewBinding.fieldTelegramBotToken.root.hint = requireContext().getString(R.string.telegram_bot_token_hint)
+        viewBinding.fieldTelegramBotToken.textField.doOnTextChanged { text, _, _, _ ->
+            viewModel.setTelegramBotToken(text?.toString())
+        }
+
+        viewBinding.fieldTelegramChatId.root.hint = requireContext().getString(R.string.telegram_chat_id_hint)
+        viewBinding.fieldTelegramChatId.textField.doOnTextChanged { text, _, _, _ ->
+            viewModel.setTelegramChatId(text?.toString())
+        }
+        
+        viewBinding.buttonTestTelegram.setOnClickListener {
+            viewModel.testTelegramConfig(
+                viewBinding.fieldTelegramBotToken.textField.text?.toString(),
+                viewBinding.fieldTelegramChatId.textField.text?.toString()
+            )
+        }
+
+
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.isScenarioFiltersUiEnabled.collect(viewBinding.fieldShowScenarioFilters::setChecked) }
@@ -107,6 +127,29 @@ class SettingsFragment : Fragment() {
                 launch { viewModel.shouldShowEntireScreenCapture.collect(::updateForceEntireScreenVisibility) }
                 launch { viewModel.shouldShowPrivacySettings.collect(::updatePrivacySettingsVisibility) }
                 launch { viewModel.shouldShowPurchase.collect(::updateRemoveAdsVisibility) }
+                launch { 
+                    viewModel.telegramBotToken.collect { token -> 
+                        if (viewBinding.fieldTelegramBotToken.textField.text?.toString() != token) {
+                            viewBinding.fieldTelegramBotToken.textField.setText(token) 
+                        }
+                    } 
+                }
+                launch { 
+                    viewModel.telegramChatId.collect { chatId -> 
+                        if (viewBinding.fieldTelegramChatId.textField.text?.toString() != chatId) {
+                            viewBinding.fieldTelegramChatId.textField.setText(chatId)
+                        }
+                    } 
+                }
+                launch {
+                    viewModel.testTelegramResult.collect { result ->
+                        result.onSuccess {
+                            Toast.makeText(requireContext(), R.string.telegram_test_success, Toast.LENGTH_SHORT).show()
+                        }.onFailure { error ->
+                            Toast.makeText(requireContext(), getString(R.string.telegram_test_failure, error.message), Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
         }
     }

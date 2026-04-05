@@ -34,6 +34,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.pause.PauseVie
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.settext.SetTextViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.swipe.SwipeViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.system.SystemActionViewModel
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.telegram.TelegramMessageViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.EventTogglesViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.ToggleEventViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.common.dialogs.counter.CounterNameSelectionViewModel
@@ -93,6 +94,7 @@ interface ScenarioConfigViewModelsEntryPoint {
     fun scenarioDialogViewModel(): ScenarioDialogViewModel
     fun setTextViewModel(): SetTextViewModel
     fun systemActionViewModel(): SystemActionViewModel
+    fun telegramMessageViewModel(): TelegramMessageViewModel
     fun smartActionsBriefViewModel(): SmartActionsBriefViewModel
     fun swipeViewModel(): SwipeViewModel
     fun timerReachedConditionViewModel(): TimerReachedConditionViewModel
