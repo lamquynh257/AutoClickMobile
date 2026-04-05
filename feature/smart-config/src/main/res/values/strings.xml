@@ -401,6 +401,8 @@
         don\'t support standard text writing, so always test your action first!</string>
 
     <string name="field_input_telegram_text_title">Text to send via Telegram</string>
+    <string name="telegram_send_screenshot_title">Send Screenshot</string>
+    <string name="telegram_timeout_hint">Timeout (ms)</string>
 
 
     <!-- Dialogs warning/error ===================================================================================== -->

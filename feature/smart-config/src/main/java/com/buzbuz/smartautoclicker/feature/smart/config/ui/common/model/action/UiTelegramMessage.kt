@@ -27,6 +27,11 @@ internal fun getTelegramMessageIconRes(): Int = R.drawable.ic_notification
 internal fun TelegramMessage.getDescription(context: Context, inError: Boolean): String {
     if (inError) return context.getString(R.string.item_error_action_invalid_generic)
 
-    return if (text.isEmpty()) "Empty text"
-    else "Message: $text"
+    val parts = mutableListOf<String>()
+    if (text.isEmpty()) parts.add("Empty text") else parts.add("Msg: $text")
+    if (sendScreenshot) parts.add("+ Screenshot")
+    timeoutMs?.let { timeout ->
+        if (timeout > 0) parts.add("Timeout: ${timeout}ms")
+    }
+    return parts.joinToString(" | ")
 }

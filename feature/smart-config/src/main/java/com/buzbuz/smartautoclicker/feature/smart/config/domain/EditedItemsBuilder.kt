@@ -338,6 +338,8 @@ class EditedItemsBuilder internal constructor(
             eventId = getEditedEventIdOrThrow(),
             name = "Telegram Message",
             text = "",
+            sendScreenshot = false,
+            timeoutMs = null,
             priority = 0,
         )
 
@@ -481,6 +483,8 @@ class EditedItemsBuilder internal constructor(
             eventId = eventId,
             name = "" + from.name,
             text = "" + from.text,
+            sendScreenshot = from.sendScreenshot,
+            timeoutMs = from.timeoutMs,
         )
     }
 

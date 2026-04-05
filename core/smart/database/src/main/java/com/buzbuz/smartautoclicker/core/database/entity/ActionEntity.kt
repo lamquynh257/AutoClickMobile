@@ -171,6 +171,8 @@ data class ActionEntity(
 
     // ActionType.TELEGRAM_MESSAGE
     @ColumnInfo(name = "telegram_message_text") val telegramMessageText: String? = null,
+    @ColumnInfo(name = "telegram_message_send_screenshot", defaultValue = "0") val telegramMessageSendScreenshot: Boolean? = null,
+    @ColumnInfo(name = "telegram_message_timeout_ms") val telegramMessageTimeoutMs: Int? = null,
 ) : EntityWithId
 
 /**

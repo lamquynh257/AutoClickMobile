@@ -33,11 +33,15 @@ data class TelegramMessage(
     override val name: String? = null,
     override var priority: Int = 0,
     val text: String,
+    val sendScreenshot: Boolean = false,
+    val timeoutMs: Int? = null,
 ) : Action() {
 
     override fun hashCodeNoIds(): Int {
         var result = name?.hashCode() ?: 0
         result = 31 * result + text.hashCode()
+        result = 31 * result + sendScreenshot.hashCode()
+        result = 31 * result + (timeoutMs ?: 0)
         return result
     }
 

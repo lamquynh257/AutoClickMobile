@@ -116,7 +116,7 @@ internal class ScenarioProcessor(
         progressListener.onImageEventsProcessingStarted()
         if (!processingState.areAllImageEventsDisabled()) {
             processImageEvents(screenFrame, processingState.getEnabledImageEvents()) { imageEvent, results ->
-                actionExecutor.executeActions(imageEvent, results)
+                actionExecutor.executeActions(imageEvent, results, screenFrame)
             }
         }
         progressListener.onImageEventsProcessingCompleted()

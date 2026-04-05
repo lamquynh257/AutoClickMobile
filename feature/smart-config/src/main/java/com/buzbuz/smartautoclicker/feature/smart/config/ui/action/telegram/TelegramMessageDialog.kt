@@ -33,6 +33,9 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setError
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setLabel
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnTextChangedListener
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setText
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setChecked
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnClickListener
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.DialogConfigActionTelegramBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.di.ScenarioConfigViewModelsEntryPoint
@@ -90,6 +93,21 @@ class TelegramMessageDialog(
                 }
             }
             hideSoftInputOnFocusLoss(fieldTextToSend.textField)
+
+            fieldSendScreenshot.apply {
+                setTitle(context.getString(R.string.telegram_send_screenshot_title))
+                setOnClickListener { viewModel.setSendScreenshot(toggleSwitch.isChecked) }
+            }
+
+            fieldTimeout.apply {
+                root.hint = context.getString(R.string.telegram_timeout_hint)
+                textField.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                textField.doOnTextChanged { text, _, _, _ ->
+                    val ms = text?.toString()?.toIntOrNull()
+                    viewModel.setTimeoutMs(ms)
+                }
+            }
+            hideSoftInputOnFocusLoss(fieldTimeout.textField)
         }
 
         return viewBinding.root
@@ -109,6 +127,16 @@ class TelegramMessageDialog(
                 launch { viewModel.textToSend.collect { text ->
                     if (viewBinding.fieldTextToSend.textField.text?.toString() != text) {
                         viewBinding.fieldTextToSend.textField.setText(text)
+                    }
+                }}
+                launch { viewModel.sendScreenshot.collect { enabled ->
+                    viewBinding.fieldSendScreenshot.setChecked(enabled)
+                }}
+                launch { viewModel.timeoutMs.collect { timeout ->
+                    val currentText = viewBinding.fieldTimeout.textField.text?.toString()
+                    val newText = timeout?.toString() ?: ""
+                    if (currentText != newText) {
+                        viewBinding.fieldTimeout.textField.setText(newText)
                     }
                 }}
                 launch { viewModel.isValidAction.collect(::updateSaveButton) }

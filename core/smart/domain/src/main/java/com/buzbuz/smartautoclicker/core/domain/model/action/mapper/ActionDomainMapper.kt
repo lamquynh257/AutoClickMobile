@@ -142,6 +142,8 @@ private fun CompleteActionEntity.toDomainTelegramMessage(cleanIds: Boolean = fal
     name = action.name,
     priority = action.priority,
     text = action.telegramMessageText ?: "",
+    sendScreenshot = action.telegramMessageSendScreenshot ?: false,
+    timeoutMs = action.telegramMessageTimeoutMs,
 )
 
 private fun ClickPositionType.toDomain(): Click.PositionType =

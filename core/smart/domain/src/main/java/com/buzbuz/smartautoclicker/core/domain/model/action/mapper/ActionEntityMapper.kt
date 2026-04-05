@@ -174,4 +174,6 @@ private fun TelegramMessage.toTelegramMessageEntity(): ActionEntity =
         name = name!!,
         type = ActionType.TELEGRAM_MESSAGE,
         telegramMessageText = text,
+        telegramMessageSendScreenshot = sendScreenshot,
+        telegramMessageTimeoutMs = timeoutMs,
     )

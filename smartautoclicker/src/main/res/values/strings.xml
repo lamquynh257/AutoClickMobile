@@ -149,6 +149,9 @@
     <string name="telegram_button_test">Test Connection</string>
     <string name="telegram_test_success">Message sent successfully!</string>
     <string name="telegram_test_failure">Failed: %1$s</string>
+    <string name="telegram_send_screenshot_title">Send Screenshot</string>
+    <string name="telegram_timeout_title">Timeout before next message</string>
+    <string name="telegram_timeout_hint">Timeout (ms)</string>
 
     <!-- Legacy condition migration dialog  ======================================================================== -->
     <string name="dialog_condition_migration_title">Migration</string>

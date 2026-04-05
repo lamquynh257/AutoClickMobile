@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.core.processing.data.processor
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent as AndroidIntent
+import android.graphics.Bitmap
 import android.graphics.Path
 import android.graphics.Point
 import android.util.Log
@@ -80,6 +81,9 @@ internal class ActionExecutor(
         if (unblockWorkaroundEnabled) UnblockGestureScheduler()
         else null
 
+    /** Tracks the timestamp of the last Telegram message sent per action, for timeout rate-limiting. */
+    private val telegramLastSentMap: MutableMap<Long, Long> = mutableMapOf()
+
 
     suspend fun onScenarioLoopFinished() {
         if (unblockGestureScheduler?.shouldTrigger() == true) {
@@ -92,7 +96,7 @@ internal class ActionExecutor(
         }
     }
 
-    suspend fun executeActions(event: Event, results: ConditionsResults? = null) {
+    suspend fun executeActions(event: Event, results: ConditionsResults? = null, screenFrame: Bitmap? = null) {
         event.actions.forEach { action ->
             when (action) {
                 is Click -> executeClick(event, action, results)
@@ -104,7 +108,7 @@ internal class ActionExecutor(
                 is Notification -> executeNotification(event, action)
                 is SystemAction -> executeSystemAction(action)
                 is SetText -> executeSetText(action)
-                is TelegramMessage -> executeTelegramMessage(action)
+                is TelegramMessage -> executeTelegramMessage(action, screenFrame)
             }
         }
     }
@@ -309,13 +313,25 @@ internal class ActionExecutor(
         }
     }
 
-    private suspend fun executeTelegramMessage(action: TelegramMessage) {
+    private suspend fun executeTelegramMessage(action: TelegramMessage, screenFrame: Bitmap? = null) {
         val botToken = settingsRepository.telegramBotTokenFlow.firstOrNull()
         val chatId = settingsRepository.telegramChatIdFlow.firstOrNull()
 
         if (botToken.isNullOrBlank() || chatId.isNullOrBlank()) {
             Log.w(TAG, "Telegram Token or Chat ID is missing. Cannot send message.")
             return
+        }
+
+        // Rate limiting: check timeout between sends for this action
+        val actionId = action.id.databaseId
+        val timeoutMs = action.timeoutMs
+        if (timeoutMs != null && timeoutMs > 0) {
+            val lastSentAt = telegramLastSentMap[actionId]
+            val now = System.currentTimeMillis()
+            if (lastSentAt != null && (now - lastSentAt) < timeoutMs) {
+                Log.d(TAG, "Telegram message skipped: timeout not reached (${now - lastSentAt}ms < ${timeoutMs}ms)")
+                return
+            }
         }
 
         val counters = buildMap {
@@ -329,30 +345,79 @@ internal class ActionExecutor(
 
         withContext(Dispatchers.IO) {
             try {
-                val urlString = "https://api.telegram.org/bot$botToken/sendMessage"
-                val url = java.net.URL(urlString)
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.doOutput = true
+                if (action.sendScreenshot && screenFrame != null) {
+                    // Send photo with caption using multipart/form-data
+                    val boundary = "TelegramBoundary${System.currentTimeMillis()}"
+                    val urlString = "https://api.telegram.org/bot$botToken/sendPhoto"
+                    val url = java.net.URL(urlString)
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "POST"
+                    connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                    connection.doOutput = true
 
-                val jsonPayload = org.json.JSONObject().apply {
-                    put("chat_id", chatId)
-                    put("text", textToSend)
-                }.toString()
+                    // Compress screen bitmap to JPEG bytes
+                    val imageData = java.io.ByteArrayOutputStream().use { baos ->
+                        screenFrame.compress(Bitmap.CompressFormat.JPEG, 80, baos)
+                        baos.toByteArray()
+                    }
 
-                connection.outputStream.use { os ->
-                    val input = jsonPayload.toByteArray(Charsets.UTF_8)
-                    os.write(input, 0, input.size)
-                }
+                    connection.outputStream.use { os ->
+                        val writer = java.io.PrintStream(os, true, Charsets.UTF_8)
+                        fun writePart(name: String, value: String) {
+                            writer.print("--$boundary\r\n")
+                            writer.print("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
+                            writer.print("$value\r\n")
+                        }
+                        writePart("chat_id", chatId)
+                        writePart("caption", textToSend)
+                        // Photo binary part
+                        writer.print("--$boundary\r\n")
+                        writer.print("Content-Disposition: form-data; name=\"photo\"; filename=\"screenshot.jpg\"\r\n")
+                        writer.print("Content-Type: image/jpeg\r\n\r\n")
+                        writer.flush()
+                        os.write(imageData)
+                        writer.print("\r\n--$boundary--\r\n")
+                        writer.flush()
+                    }
 
-                val responseCode = connection.responseCode
-                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                    Log.i(TAG, "Telegram message sent successfully")
+                    val responseCode = connection.responseCode
+                    if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                        Log.i(TAG, "Telegram photo sent successfully")
+                        telegramLastSentMap[actionId] = System.currentTimeMillis()
+                    } else {
+                        val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "N/A"
+                        Log.e(TAG, "Failed to send Telegram photo. Code: $responseCode. Body: $errorBody")
+                    }
+                    connection.disconnect()
                 } else {
-                    Log.e(TAG, "Failed to send Telegram message. Response code: $responseCode")
+                    // Send text-only message
+                    val urlString = "https://api.telegram.org/bot$botToken/sendMessage"
+                    val url = java.net.URL(urlString)
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "POST"
+                    connection.setRequestProperty("Content-Type", "application/json")
+                    connection.doOutput = true
+
+                    val jsonPayload = org.json.JSONObject().apply {
+                        put("chat_id", chatId)
+                        put("text", textToSend)
+                    }.toString()
+
+                    connection.outputStream.use { os ->
+                        val input = jsonPayload.toByteArray(Charsets.UTF_8)
+                        os.write(input, 0, input.size)
+                    }
+
+                    val responseCode = connection.responseCode
+                    if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                        Log.i(TAG, "Telegram message sent successfully")
+                        telegramLastSentMap[actionId] = System.currentTimeMillis()
+                    } else {
+                        val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "N/A"
+                        Log.e(TAG, "Failed to send Telegram message. Code: $responseCode. Body: $errorBody")
+                    }
+                    connection.disconnect()
                 }
-                connection.disconnect()
             } catch (e: Exception) {
                 Log.e(TAG, "Exception while sending Telegram message", e)
             }

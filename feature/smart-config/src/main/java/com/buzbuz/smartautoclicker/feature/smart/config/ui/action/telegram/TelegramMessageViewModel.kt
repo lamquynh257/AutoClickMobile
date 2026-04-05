@@ -70,6 +70,14 @@ class TelegramMessageViewModel @Inject constructor(
         .map { it.text }
         .take(1)
 
+    val sendScreenshot: Flow<Boolean> = configuredAction
+        .map { it.sendScreenshot }
+        .take(1)
+
+    val timeoutMs: Flow<Int?> = configuredAction
+        .map { it.timeoutMs }
+        .take(1)
+
     /** Tells if the configured action is valid and can be saved. */
     val isValidAction: Flow<Boolean> = editionRepository.editionState.editedActionState
         .map { it.canBeSaved }
@@ -87,6 +95,18 @@ class TelegramMessageViewModel @Inject constructor(
     fun setTextToSend(newText: String) {
         editionRepository.editionState.getEditedAction<TelegramMessage>()?.let { action ->
             editionRepository.updateEditedAction(action.copy(text = "" + newText))
+        }
+    }
+
+    fun setSendScreenshot(enabled: Boolean) {
+        editionRepository.editionState.getEditedAction<TelegramMessage>()?.let { action ->
+            editionRepository.updateEditedAction(action.copy(sendScreenshot = enabled))
+        }
+    }
+
+    fun setTimeoutMs(timeout: Int?) {
+        editionRepository.editionState.getEditedAction<TelegramMessage>()?.let { action ->
+            editionRepository.updateEditedAction(action.copy(timeoutMs = timeout))
         }
     }
 
