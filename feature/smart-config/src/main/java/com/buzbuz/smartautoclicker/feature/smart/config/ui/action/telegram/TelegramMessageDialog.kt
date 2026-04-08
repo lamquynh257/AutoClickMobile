@@ -36,6 +36,7 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setText
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setChecked
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnClickListener
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnCheckedChangeListener
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.DialogConfigActionTelegramBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.di.ScenarioConfigViewModelsEntryPoint
@@ -96,7 +97,7 @@ class TelegramMessageDialog(
 
             fieldSendScreenshot.apply {
                 setTitle(context.getString(R.string.telegram_send_screenshot_title))
-                setOnClickListener { viewModel.setSendScreenshot(toggleSwitch.isChecked) }
+                setOnCheckedChangeListener { isChecked -> viewModel.setSendScreenshot(isChecked) }
             }
 
             fieldTimeout.apply {

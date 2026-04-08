@@ -43,6 +43,25 @@ fun IncludeFieldSwitchBinding.setChecked(isChecked: Boolean) {
 }
 
 fun IncludeFieldSwitchBinding.setOnClickListener(listener: (() -> Unit)?) {
-    if (listener == null) toggleSwitch.setOnClickListener(null)
-    else toggleSwitch.setOnClickListener { listener() }
+    if (listener == null) {
+        toggleSwitch.setOnClickListener(null)
+        root.setOnClickListener(null)
+    } else {
+        val clickAction = {
+            toggleSwitch.toggle()
+            listener()
+        }
+        toggleSwitch.setOnClickListener { listener() }
+        root.setOnClickListener { clickAction() }
+    }
+}
+
+fun IncludeFieldSwitchBinding.setOnCheckedChangeListener(listener: ((Boolean) -> Unit)?) {
+    if (listener == null) {
+        toggleSwitch.setOnCheckedChangeListener(null)
+        root.setOnClickListener(null)
+    } else {
+        toggleSwitch.setOnCheckedChangeListener { _, isChecked -> listener(isChecked) }
+        root.setOnClickListener { toggleSwitch.toggle() }
+    }
 }

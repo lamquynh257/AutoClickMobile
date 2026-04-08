@@ -314,8 +314,8 @@ internal class ActionExecutor(
     }
 
     private suspend fun executeTelegramMessage(action: TelegramMessage, screenFrame: Bitmap? = null) {
-        val botToken = settingsRepository.telegramBotTokenFlow.firstOrNull()
-        val chatId = settingsRepository.telegramChatIdFlow.firstOrNull()
+        val botToken = settingsRepository.getTelegramBotToken()
+        val chatId = settingsRepository.getTelegramChatId()
 
         if (botToken.isNullOrBlank() || chatId.isNullOrBlank()) {
             Log.w(TAG, "Telegram Token or Chat ID is missing. Cannot send message.")
@@ -346,49 +346,115 @@ internal class ActionExecutor(
         withContext(Dispatchers.IO) {
             try {
                 if (action.sendScreenshot && screenFrame != null) {
-                    // Send photo with caption using multipart/form-data
-                    val boundary = "TelegramBoundary${System.currentTimeMillis()}"
-                    val urlString = "https://api.telegram.org/bot$botToken/sendPhoto"
-                    val url = java.net.URL(urlString)
-                    val connection = url.openConnection() as java.net.HttpURLConnection
-                    connection.requestMethod = "POST"
-                    connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-                    connection.doOutput = true
-
-                    // Compress screen bitmap to JPEG bytes
-                    val imageData = java.io.ByteArrayOutputStream().use { baos ->
-                        screenFrame.compress(Bitmap.CompressFormat.JPEG, 80, baos)
-                        baos.toByteArray()
-                    }
-
-                    connection.outputStream.use { os ->
-                        val writer = java.io.PrintStream(os, true, Charsets.UTF_8)
-                        fun writePart(name: String, value: String) {
-                            writer.print("--$boundary\r\n")
-                            writer.print("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
-                            writer.print("$value\r\n")
+                    var finalBitmap: Bitmap? = null
+                    val imageData: ByteArray? = try {
+                        // 1. MUST convert to software bitmap BEFORE scaling to prevent Canvas hardware exceptions
+                        val softwareBitmap = if (screenFrame.config == Bitmap.Config.HARDWARE) {
+                            screenFrame.copy(Bitmap.Config.ARGB_8888, false)
+                        } else {
+                            screenFrame
                         }
-                        writePart("chat_id", chatId)
-                        writePart("caption", textToSend)
-                        // Photo binary part
-                        writer.print("--$boundary\r\n")
-                        writer.print("Content-Disposition: form-data; name=\"photo\"; filename=\"screenshot.jpg\"\r\n")
-                        writer.print("Content-Type: image/jpeg\r\n\r\n")
-                        writer.flush()
-                        os.write(imageData)
-                        writer.print("\r\n--$boundary--\r\n")
-                        writer.flush()
+
+                        // 2. Scale down to reduce network size and memory usage
+                        val width = softwareBitmap.width / 2
+                        val height = softwareBitmap.height / 2
+                        finalBitmap = Bitmap.createScaledBitmap(softwareBitmap, width, height, true)
+                        
+                        // If we created a temporary software copy, clean it up
+                        if (softwareBitmap != screenFrame && softwareBitmap != finalBitmap) {
+                            softwareBitmap.recycle()
+                        }
+
+                        // 3. Compress to JPEG Byte Array
+                        java.io.ByteArrayOutputStream().use { baos ->
+                            finalBitmap?.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+                            baos.toByteArray()
+                        }
+                    } catch (t: Throwable) {
+                        val errorMsg = "Failed to compress screenshot: ${t.message}"
+                        Log.e(TAG, errorMsg, t)
+                        androidExecutor.postNotification(
+                            com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest(
+                                actionId = action.id.databaseId,
+                                eventId = -1L,
+                                title = "Telegram Error",
+                                message = errorMsg,
+                                groupName = "Telegram",
+                                importance = android.app.NotificationManager.IMPORTANCE_DEFAULT
+                            )
+                        )
+                        null
+                    } finally {
+                        finalBitmap?.recycle()
                     }
 
-                    val responseCode = connection.responseCode
-                    if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                        Log.i(TAG, "Telegram photo sent successfully")
-                        telegramLastSentMap[actionId] = System.currentTimeMillis()
+                    if (imageData != null) {
+                        // Send photo with caption using multipart/form-data
+                        val boundary = "TelegramBoundary${System.currentTimeMillis()}"
+                        val urlString = "https://api.telegram.org/bot$botToken/sendPhoto"
+                        val url = java.net.URL(urlString)
+                        val connection = url.openConnection() as java.net.HttpURLConnection
+                        connection.requestMethod = "POST"
+                        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                        connection.doOutput = true
+    
+                        connection.outputStream.use { os ->
+                            val writer = java.io.PrintStream(os, true, "UTF-8")
+                            fun writePart(name: String, value: String) {
+                                writer.print("--$boundary\r\n")
+                                writer.print("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
+                                writer.print("$value\r\n")
+                            }
+                            writePart("chat_id", chatId)
+                            writePart("caption", textToSend)
+                            
+                            // Photo binary part
+                            writer.print("--$boundary\r\n")
+                            writer.print("Content-Disposition: form-data; name=\"photo\"; filename=\"screenshot.jpg\"\r\n")
+                            writer.print("Content-Type: image/jpeg\r\n\r\n")
+                            writer.flush()
+                            
+                            // Write the compressed image bytes directly
+                            os.write(imageData)
+                            
+                            writer.print("\r\n--$boundary--\r\n")
+                            writer.flush()
+                        }
+    
+                        val responseCode = connection.responseCode
+                        if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                            Log.i(TAG, "Telegram photo sent successfully")
+                            telegramLastSentMap[actionId] = System.currentTimeMillis()
+                        } else {
+                            val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "N/A"
+                            val errorMsg = "Telegram API Error $responseCode: $errorBody"
+                            Log.e(TAG, errorMsg)
+                            androidExecutor.postNotification(
+                                com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest(
+                                    actionId = action.id.databaseId,
+                                    eventId = -1L,
+                                    title = "Telegram Error",
+                                    message = errorMsg,
+                                    groupName = "Telegram",
+                                    importance = android.app.NotificationManager.IMPORTANCE_DEFAULT
+                                )
+                            )
+                        }
+                        connection.disconnect()
                     } else {
-                        val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "N/A"
-                        Log.e(TAG, "Failed to send Telegram photo. Code: $responseCode. Body: $errorBody")
+                        val errorMsg = "Image data is null, cannot send photo"
+                        Log.w(TAG, errorMsg)
+                        androidExecutor.postNotification(
+                            com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest(
+                                actionId = action.id.databaseId,
+                                eventId = -1L,
+                                title = "Telegram Error",
+                                message = errorMsg,
+                                groupName = "Telegram",
+                                importance = android.app.NotificationManager.IMPORTANCE_DEFAULT
+                            )
+                        )
                     }
-                    connection.disconnect()
                 } else {
                     // Send text-only message
                     val urlString = "https://api.telegram.org/bot$botToken/sendMessage"
@@ -418,8 +484,19 @@ internal class ActionExecutor(
                     }
                     connection.disconnect()
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception while sending Telegram message", e)
+            } catch (e: Throwable) {
+                val errorMsg = "Error while sending Telegram message: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                androidExecutor.postNotification(
+                    com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest(
+                        actionId = action.id.databaseId,
+                        eventId = -1L,
+                        title = "Telegram Fatal Error",
+                        message = errorMsg,
+                        groupName = "Telegram",
+                        importance = android.app.NotificationManager.IMPORTANCE_DEFAULT
+                    )
+                )
             }
         }
     }
