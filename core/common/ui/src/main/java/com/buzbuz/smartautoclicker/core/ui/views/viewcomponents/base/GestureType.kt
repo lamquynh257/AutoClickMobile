@@ -82,6 +82,18 @@ internal data object ResizeBottom: GestureType() {
         )
 }
 
+internal data object ResizeBottomRight: GestureType() {
+    override fun getGestureArea(viewArea: RectF, handleSize: Float, innerHandleSize: Float): RectF {
+        val size = handleSize * 2f
+        return RectF(
+            viewArea.right - size,
+            viewArea.bottom - size,
+            viewArea.right + size,
+            viewArea.bottom + size
+        )
+    }
+}
+
 internal data object MoveSelector: GestureType()
 
 internal data object ZoomCapture: GestureType()

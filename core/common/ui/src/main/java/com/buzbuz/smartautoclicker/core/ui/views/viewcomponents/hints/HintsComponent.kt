@@ -176,6 +176,9 @@ internal class HintsComponent(
                     newSelectorArea.centerY(), booleanArrayOf(false, allShown))
                 ResizeRight -> hint.invalidate(newSelectorArea, newSelectorArea.right,
                     newSelectorArea.centerY(), booleanArrayOf(allShown, false))
+                else -> {
+                    // Do nothing for other gestures like ResizeBottomRight
+                }
             }
         }
         invalidate()
@@ -189,7 +192,7 @@ internal class HintsComponent(
 
     override fun onDraw(canvas: Canvas) {
         iconsShown.forEach { hintType ->
-            hintsIcons[hintType]!!.draw(canvas)
+            hintsIcons[hintType]?.draw(canvas)
         }
     }
 

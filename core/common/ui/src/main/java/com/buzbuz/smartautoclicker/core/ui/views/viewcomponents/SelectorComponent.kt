@@ -27,6 +27,9 @@ import android.view.GestureDetector
 import android.view.KeyEvent.ACTION_UP
 import android.view.MotionEvent
 
+import kotlin.math.max
+import kotlin.math.min
+
 import androidx.annotation.ColorInt
 import androidx.core.graphics.toRect
 import androidx.core.graphics.toRectF
@@ -35,10 +38,7 @@ import com.buzbuz.smartautoclicker.core.base.extensions.translate
 import com.buzbuz.smartautoclicker.core.display.config.DisplayConfigManager
 import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.GestureType
 import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.MoveSelector
-import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ResizeBottom
-import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ResizeLeft
-import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ResizeRight
-import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ResizeTop
+import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ResizeBottomRight
 import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ViewComponent
 import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ViewInvalidator
 import com.buzbuz.smartautoclicker.core.ui.views.viewcomponents.base.ViewStyle
@@ -232,14 +232,8 @@ internal class SelectorComponent(
 
     private fun onNewDownEvent(eventX: Float, eventY: Float): Boolean {
         currentGesture = when {
-            ResizeLeft.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
-                ResizeLeft
-            ResizeTop.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
-                ResizeTop
-            ResizeRight.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
-                ResizeRight
-            ResizeBottom.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
-                ResizeBottom
+            ResizeBottomRight.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
+                ResizeBottomRight
             MoveSelector.getGestureArea(selectedArea, handleSize, innerHandleSize).contains(eventX, eventY) ->
                 MoveSelector
             else -> null
@@ -260,22 +254,16 @@ internal class SelectorComponent(
     private fun onTranslateSelector(translateX: Float, translateY: Float) {
         currentGesture?.let {
             when (it) {
-                ResizeLeft -> selectorArea.left = min(
-                    selectorArea.left + translateX,
-                    selectorArea.right - selectorMinimumSize.x
-                )
-                ResizeTop -> selectorArea.top = min(
-                    selectorArea.top + translateY,
-                    selectorArea.bottom - selectorMinimumSize.y
-                )
-                ResizeRight -> selectorArea.right = max(
-                    selectorArea.right + translateX,
-                    selectorArea.left + selectorMinimumSize.x
-                )
-                ResizeBottom -> selectorArea.bottom = max(
-                    selectorArea.bottom + translateY,
-                    selectorArea.top + selectorMinimumSize.y
-                )
+                ResizeBottomRight -> {
+                    selectorArea.right = max(
+                        selectorArea.right + translateX,
+                        selectorArea.left + selectorMinimumSize.x
+                    )
+                    selectorArea.bottom = max(
+                        selectorArea.bottom + translateY,
+                        selectorArea.top + selectorMinimumSize.y
+                    )
+                }
                 MoveSelector -> {
                     moveResult.set(selectorArea)
                     moveResult.translate(translateX, translateY)
@@ -285,6 +273,9 @@ internal class SelectorComponent(
                     }
                 }
                 ZoomCapture -> return
+                else -> {
+                    // Do nothing for other gestures as we removed independent edge resizing
+                }
             }
 
             verifyBounds()
@@ -325,6 +316,23 @@ internal class SelectorComponent(
     override fun onDraw(canvas: Canvas) {
         canvas.drawPath(selectorDrawingPath, backgroundPaint)
         canvas.drawRoundRect(selectorArea, cornerRadius, cornerRadius, selectorPaint)
+        
+        // Draw bottom-right resize handle triangle
+        // The triangle size dynamically scales down if the selector area is too small
+        val maxTriangleSize = min(selectorArea.width() * 0.4f, selectorArea.height() * 0.4f)
+        val triangleSize = min(handleSize * 1.5f, maxTriangleSize)
+        
+        val handlePath = Path().apply {
+            moveTo(selectorArea.right - triangleSize, selectorArea.bottom)
+            lineTo(selectorArea.right, selectorArea.bottom)
+            lineTo(selectorArea.right, selectorArea.bottom - triangleSize)
+            close()
+        }
+        val handlePaint = android.graphics.Paint(selectorPaint).apply {
+            style = android.graphics.Paint.Style.FILL
+            alpha = 180
+        }
+        canvas.drawPath(handlePath, handlePaint)
     }
 
     override fun onReset() {
@@ -358,8 +366,8 @@ internal class SelectorComponentStyle(
 ) : ViewStyle(displayConfigManager)
 
 /** The ratio of the maximum width to be considered as the minimum width. */
-private const val SELECTOR_MINIMUM_WIDTH_RATIO = 0.01f
+private const val SELECTOR_MINIMUM_WIDTH_RATIO = 0.001f
 /** The ratio of the maximum height to be considered as the minimum height. */
-private const val SELECTOR_MINIMUM_HEIGHT_RATIO = 0.01f
+private const val SELECTOR_MINIMUM_HEIGHT_RATIO = 0.001f
 /** Ratio between the handle and the inner handle */
 private const val INNER_HANDLE_RATIO = 3f

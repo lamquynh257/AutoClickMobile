@@ -25,7 +25,7 @@
 
     <dimen name="overlay_condition_selector_width">230dp</dimen>
     <dimen name="overlay_condition_selector_height">130dp</dimen>
-    <dimen name="overlay_condition_selector_resize_handle_size">50dp</dimen>
+    <dimen name="overlay_condition_selector_resize_handle_size">20dp</dimen>
     <dimen name="overlay_condition_selector_resize_hints_icon_size">30dp</dimen>
     <dimen name="overlay_condition_selector_resize_hints_icon_margin">5dp</dimen>
     <dimen name="overlay_condition_selector_resize_hints_pinch_icon_margin">100dp</dimen>
